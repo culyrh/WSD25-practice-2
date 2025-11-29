@@ -91,7 +91,7 @@ public class UserController {
                 .ok(ApiResponse.success(result));
     }
 
-    // GET 1: 전체 사용자 조회
+    // GET 1: 전체 회원 조회
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {
         List<UserDto> users = new ArrayList<>();
@@ -110,7 +110,7 @@ public class UserController {
                 .ok(ApiResponse.success(users));
     }
 
-    // GET 2: 특정 사용자 조회 - id로
+    // GET 2: 특정 회원 조회 - id로
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable Long id) {
         UserDto user = store.get(id);
@@ -130,5 +130,74 @@ public class UserController {
 
         return ResponseEntity
                 .ok(ApiResponse.success(response));
+    }
+
+    // PUT 1: 회원 정보 수정
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<UserDto>> updateUser(
+            @PathVariable Long id,
+            @RequestBody UserDto updateDto) {
+
+        UserDto user = store.get(id);
+
+        if (user == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("ID " + id + "에 해당하는 사용자를 찾을 수 없습니다"));
+        }
+
+        // 필드별 업데이트
+        if (updateDto.getName() != null) {
+            user.setName(updateDto.getName());
+        }
+        if (updateDto.getEmail() != null) {
+            user.setEmail(updateDto.getEmail());
+        }
+
+        // 비밀번호 제거하고 반환
+        UserDto response = new UserDto();
+        response.setId(user.getId());
+        response.setUserId(user.getUserId());
+        response.setName(user.getName());
+        response.setEmail(user.getEmail());
+
+        return ResponseEntity
+                .ok(ApiResponse.success(response));
+    }
+
+    // PUT 2: 비밀번호 변경
+    @PutMapping("/{id}/password")
+    public ResponseEntity<ApiResponse<String>> changePassword(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-OLD-PW") String oldPassword,
+            @RequestHeader(value = "X-NEW-PW") String newPassword) {
+
+        UserDto user = store.get(id);
+
+        if (user == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("ID " + id + "에 해당하는 사용자를 찾을 수 없습니다"));
+        }
+
+        // 기존 비밀번호 확인
+        if (!user.getPassword().equals(oldPassword)) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("기존 비밀번호가 일치하지 않습니다"));
+        }
+
+        // 새 비밀번호 유효성 검사
+        if (newPassword == null || newPassword.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("새 비밀번호를 입력해주세요"));
+        }
+
+        // 비밀번호 변경
+        user.setPassword(newPassword);
+
+        return ResponseEntity
+                .ok(ApiResponse.success("비밀번호가 성공적으로 변경되었습니다"));
     }
 }
