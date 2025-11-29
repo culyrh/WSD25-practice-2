@@ -200,4 +200,42 @@ public class UserController {
         return ResponseEntity
                 .ok(ApiResponse.success("비밀번호가 성공적으로 변경되었습니다"));
     }
+    
+    // DELETE 1: 특정 회원 삭제
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteUser(@PathVariable Long id) {
+        UserDto removed = store.remove(id);
+
+        if (removed == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("ID " + id + "에 해당하는 사용자를 찾을 수 없습니다"));
+        }
+
+        // userIdIndex에서도 제거
+        userIdIndex.remove(removed.getUserId());
+
+        return ResponseEntity
+                .ok(ApiResponse.success("사용자가 성공적으로 삭제되었습니다"));
+    }
+
+    // DELETE 2: 전체 회원 삭제
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> deleteAllUsers() {
+        try {
+            int count = store.size();
+            store.clear();
+            userIdIndex.clear();
+
+            Map<String, Integer> result = new HashMap<>();
+            result.put("deletedCount", count);
+
+            return ResponseEntity
+                    .ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("사용자 삭제 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
 }
